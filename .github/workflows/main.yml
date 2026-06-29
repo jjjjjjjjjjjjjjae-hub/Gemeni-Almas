@@ -1,0 +1,33 @@
+name: Offset Analyzer
+
+on: [push]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Reassemble and Analyze
+        run: |
+          # 1. Бөлінген файлдарды біріктіру
+          cat ff_part_* > FreeFire.apk
+          
+          # 2. Extract (lib және metadata)
+          mkdir -p extracted
+          unzip -q FreeFire.apk "lib/arm64-v8a/libil2cpp.so" -d extracted/
+          unzip -q FreeFire.apk "assets/bin/Data/Managed/Metadata/global-metadata.dat" -d extracted/
+          
+          # 3. Dumper орнату
+          wget -q https://github.com/Perfare/Il2CppDumper/releases/download/v7.0.0/Il2CppDumper-v7.0.0.zip
+          unzip -q Il2CppDumper-v7.0.0.zip -d dumper
+          
+          # 4. Анализ жасау
+          ./dumper/Il2CppDumper extracted/assets/bin/Data/Managed/Metadata/global-metadata.dat extracted/lib/arm64-v8a/libil2cpp.so ./output
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: offset-dump
+          path: output/
